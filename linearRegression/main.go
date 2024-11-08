@@ -3,18 +3,14 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
-	"gonum.org/v1/plot"
-	"gonum.org/v1/plot/plotter"
-	"gonum.org/v1/plot/vg"
 	"log"
 	"math"
 	"os"
 	"sort"
 	"strconv"
-	"text/tabwriter"
 )
 
-type Student struct {
+type StudentData struct {
 	HoursStudied                  float64
 	PreviousScores                float64
 	ExtracurricularActivities     bool
@@ -23,112 +19,63 @@ type Student struct {
 	PerformanceIndex              float64
 }
 
-func main() {
-
-	filePath := "./dataset/Student_Performance.csv"
-	data, err := read(filePath)
-	if err != nil {
-		fmt.Println("Error!")
-		return
-	}
-
-	for _, student := range data {
-		fmt.Printf("%+v\n", student)
-	}
-
-	stats := CalculateStatics(data)
-	printStatistics(stats)
-
-	err = plotHistograms(data)
-
-	if err != nil {
-		log.Fatalf("error")
-	}
-}
-
-func read(filePath string) ([]Student, error) {
+func readCSV(filePath string) ([]StudentData, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	defer file.Close()
 
 	reader := csv.NewReader(file)
-	reader.FieldsPerRecord = 6
-	reader.Comment = '#'
+	records, err := reader.ReadAll()
+	if err != nil {
+		return nil, err
+	}
 
-	var students []Student
-
-	for {
-		record, e := reader.Read()
-		if e != nil {
-			break
+	var data []StudentData
+	for i, record := range records {
+		if i == 0 {
+			continue
 		}
 
 		hoursStudied, _ := strconv.ParseFloat(record[0], 64)
 		previousScores, _ := strconv.ParseFloat(record[1], 64)
 		extracurricularActivities := record[2] == "Yes"
 		sleepHours, _ := strconv.ParseFloat(record[3], 64)
-		sampleQuestionPapers, _ := strconv.ParseFloat(record[4], 64)
+		sampleQuestionPapersPracticed, _ := strconv.ParseFloat(record[4], 64)
 		performanceIndex, _ := strconv.ParseFloat(record[5], 64)
 
-		student := Student{
+		data = append(data, StudentData{
 			HoursStudied:                  hoursStudied,
 			PreviousScores:                previousScores,
 			ExtracurricularActivities:     extracurricularActivities,
 			SleepHours:                    sleepHours,
-			SampleQuestionPapersPracticed: sampleQuestionPapers,
+			SampleQuestionPapersPracticed: sampleQuestionPapersPracticed,
 			PerformanceIndex:              performanceIndex,
-		}
-		students = append(students, student)
-
+		})
 	}
-	return students, nil
+	return data, nil
 }
 
-func CalculateStatics(students []Student) map[string]map[string]float64 {
-	stats := make(map[string]map[string]float64)
-
-	hoursStudied := make([]float64, len(students))
-	previousScores := make([]float64, len(students))
-	sleepHours := make([]float64, len(students))
-	sampleQuestionPapers := make([]float64, len(students))
-	performanceIndex := make([]float64, len(students))
-
-	for i, student := range students {
-		hoursStudied[i] = student.HoursStudied
-		previousScores[i] = student.PreviousScores
-		sleepHours[i] = student.SleepHours
-		sampleQuestionPapers[i] = student.SampleQuestionPapersPracticed
-		performanceIndex[i] = student.PerformanceIndex
-	}
-	stats["HoursStudied"] = calcBasicStats(hoursStudied)
-	stats["PreviousScores"] = calcBasicStats(previousScores)
-	stats["SleepHours"] = calcBasicStats(sleepHours)
-	stats["SampleQuestionPapersPracticed"] = calcBasicStats(sampleQuestionPapers)
-	stats["PerformanceIndex"] = calcBasicStats(performanceIndex)
-
-	return stats
-
-}
-
-func calcBasicStats(data []float64) map[string]float64 {
-	stat := make(map[string]float64)
-
-	var filteredData []float64
-	for _, value := range data {
-		if value != 0 {
-			filteredData = append(filteredData, value)
-		}
-	}
-
-	count := float64(len(filteredData))
+func calculateMean(data []float64) float64 {
 	sum := 0.0
-	min := math.Inf(1)
-	max := math.Inf(-1)
-
-	for _, value := range filteredData {
+	for _, value := range data {
 		sum += value
+	}
+	return sum / float64(len(data))
+}
+
+func calculateStdDev(data []float64, mean float64) float64 {
+	sum := 0.0
+	for _, value := range data {
+		sum += math.Pow(value-mean, 2)
+	}
+	return math.Sqrt(sum / float64(len(data)))
+}
+
+func calculateMinMax(data []float64) (float64, float64) {
+	min, max := data[0], data[0]
+	for _, value := range data[1:] {
 		if value < min {
 			min = value
 		}
@@ -136,110 +83,59 @@ func calcBasicStats(data []float64) map[string]float64 {
 			max = value
 		}
 	}
-
-	mean := sum / count
-	variance := 0.0
-	for _, value := range filteredData {
-		variance += (value - mean) * (value - mean)
-	}
-	variance /= count
-	stdDev := math.Sqrt(variance)
-
-	stat["count"] = count
-	stat["mean"] = mean
-	stat["stdDev"] = stdDev
-	stat["min"] = min
-	stat["max"] = max
-	stat["25%"] = percentile(filteredData, 25)
-	stat["50%"] = percentile(filteredData, 50)
-	stat["75%"] = percentile(filteredData, 75)
-
-	return stat
+	return min, max
 }
 
-func percentile(data []float64, perc float64) float64 {
+func calculateQuantile(data []float64, quantile float64) float64 {
 	sort.Float64s(data)
-
-	pos := perc / 100 * float64(len(data)-1)
-	lower := int(math.Floor(pos))
-	upper := int(math.Ceil(pos))
-
-	if lower == upper {
-		return data[lower]
+	index := quantile * float64(len(data)-1)
+	low := int(math.Floor(index))
+	high := int(math.Ceil(index))
+	if low == high {
+		return data[low]
 	}
-	return data[lower] + (pos-float64(lower))*(data[upper]-data[lower])
+	return data[low] + (data[high]-data[low])*(index-float64(low))
 }
 
-func plotHistograms(students []Student) error {
-	hoursStudied := make(plotter.Values, len(students))
-	previousScores := make(plotter.Values, len(students))
-	sleepHours := make(plotter.Values, len(students))
-	sampleQuestionPapers := make(plotter.Values, len(students))
-	performanceIndex := make(plotter.Values, len(students))
-
-	for i, student := range students {
-		hoursStudied[i] = student.HoursStudied
-		previousScores[i] = student.PreviousScores
-		sleepHours[i] = student.SleepHours
-		sampleQuestionPapers[i] = student.SampleQuestionPapersPracticed
-		performanceIndex[i] = student.PerformanceIndex
-	}
-
-	err := plotHistogram("HoursStudied", hoursStudied)
+func main() {
+	filePath := "./dataset/Student_Performance.csv"
+	data, err := readCSV(filePath)
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 
-	err = plotHistogram("PreviousScores", previousScores)
-	if err != nil {
-		return err
+	var hoursStudied, previousScores, sleepHours, samplePapers, performanceIndex []float64
+	for _, student := range data {
+		hoursStudied = append(hoursStudied, student.HoursStudied)
+		previousScores = append(previousScores, student.PreviousScores)
+		sleepHours = append(sleepHours, student.SleepHours)
+		samplePapers = append(samplePapers, student.SampleQuestionPapersPracticed)
+		performanceIndex = append(performanceIndex, student.PerformanceIndex)
 	}
 
-	err = plotHistogram("SleepHours", sleepHours)
-	if err != nil {
-		return err
-	}
-
-	err = plotHistogram("SampleQuestionPapersPracticed", sampleQuestionPapers)
-	if err != nil {
-		return err
-	}
-
-	err = plotHistogram("PerformanceIndex", performanceIndex)
-	return err
+	displayStatistics("Hours Studied", hoursStudied)
+	displayStatistics("Previous Scores", previousScores)
+	displayStatistics("Sleep Hours", sleepHours)
+	displayStatistics("Sample Question Papers Practiced", samplePapers)
+	displayStatistics("Performance Index", performanceIndex)
 }
 
-func plotHistogram(title string, values plotter.Values) error {
-	p := plot.New()
+func displayStatistics(name string, data []float64) {
+	count := len(data)
+	mean := calculateMean(data)
+	stdDev := calculateStdDev(data, mean)
+	min, max := calculateMinMax(data)
+	q25 := calculateQuantile(data, 0.25)
+	q50 := calculateQuantile(data, 0.50)
+	q75 := calculateQuantile(data, 0.75)
 
-	p.Title.Text = fmt.Sprintf("Histogram of %s", title)
-	h, err := plotter.NewHist(values, 16)
-	if err != nil {
-		return err
-	}
-	h.Normalize(1)
-	p.Add(h)
-
-	err = p.Save(10*vg.Centimeter, 10*vg.Centimeter, fmt.Sprintf("./graphs/%s_hist.png", title))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func printStatistics(stats map[string]map[string]float64) {
-	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.Debug)
-
-	fmt.Fprintf(writer, "Field\tCount\tMean\tStdDev\tMin\tMax\t25%%\t50%%\t75%%\n")
-
-	for field, stat := range stats {
-		fmt.Fprintf(writer, "%s\t%.0f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\n",
-			field,
-			stat["count"], stat["mean"], stat["stdDev"],
-			stat["min"], stat["max"],
-			stat["25%"], stat["50%"], stat["75%"])
-	}
-
-	writer.Flush()
+	fmt.Printf("%s:\n", name)
+	fmt.Printf("  Count: %d\n", count)
+	fmt.Printf("  Mean: %.2f\n", mean)
+	fmt.Printf("  Std Dev: %.2f\n", stdDev)
+	fmt.Printf("  Min: %.2f\n", min)
+	fmt.Printf("  Max: %.2f\n", max)
+	fmt.Printf("  25th Percentile: %.2f\n", q25)
+	fmt.Printf("  50th Percentile (Median): %.2f\n", q50)
+	fmt.Printf("  75th Percentile: %.2f\n\n", q75)
 }
