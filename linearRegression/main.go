@@ -104,6 +104,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	err = plotHistograms(data)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	var hoursStudied, previousScores, sleepHours, samplePapers, performanceIndex []float64
 	for _, student := range data {
 		hoursStudied = append(hoursStudied, student.HoursStudied)
