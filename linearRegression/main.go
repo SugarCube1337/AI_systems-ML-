@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
+	"github.com/sajari/regression"
 	"log"
 	"math"
 	"math/rand"
@@ -97,6 +98,7 @@ func calculateMinMax(data []float64) (float64, float64) {
 	}
 	return min, max
 }
+
 func minMaxNormalize(data []float64) []float64 {
 	min, max := calculateMinMax(data)
 
@@ -131,6 +133,92 @@ func splitData(data []StudentData, trainSize float64) ([]StudentData, []StudentD
 	trainData := data[:trainCount]
 	testData := data[trainCount:]
 	return trainData, testData
+}
+
+func trainModel(trainData []StudentData, testData []StudentData, features []int) (regression.Regression, float64, float64) {
+	var r regression.Regression
+	r.SetObserved("PerformanceIndex")
+
+	for _, feature := range features {
+		r.SetVar(feature, fmt.Sprintf("Feature%d", feature))
+	}
+
+	for _, student := range trainData {
+		extracurricular := 0
+		if student.ExtracurricularActivities {
+			extracurricular = 1
+		}
+		var featureValues []float64
+		for _, feature := range features {
+			switch feature {
+			case 0:
+				featureValues = append(featureValues, student.HoursStudied)
+			case 1:
+				featureValues = append(featureValues, student.PreviousScores)
+			case 2:
+				featureValues = append(featureValues, float64(extracurricular))
+			case 3:
+				featureValues = append(featureValues, student.SleepHours)
+			case 4:
+				featureValues = append(featureValues, student.SampleQuestionPapersPracticed)
+			}
+		}
+		r.Train(regression.DataPoint(student.PerformanceIndex, featureValues))
+	}
+	r.Run()
+
+	var mse, ssResidual, ssTotal float64
+	var predictedValues []float64
+	var actualValues []float64
+	meanActual := calculateMean(getPerformanceIndexes(trainData))
+
+	for _, student := range testData {
+		extracurricular := 0
+		if student.ExtracurricularActivities {
+			extracurricular = 1
+		}
+		var featureValues []float64
+		for _, feature := range features {
+			switch feature {
+			case 0:
+				featureValues = append(featureValues, student.HoursStudied)
+			case 1:
+				featureValues = append(featureValues, student.PreviousScores)
+			case 2:
+				featureValues = append(featureValues, float64(extracurricular))
+			case 3:
+				featureValues = append(featureValues, student.SleepHours)
+			case 4:
+				featureValues = append(featureValues, student.SampleQuestionPapersPracticed)
+			}
+		}
+		predicted, err := r.Predict(featureValues)
+		if err != nil {
+			log.Fatal(err)
+		}
+		actualValues = append(actualValues, student.PerformanceIndex)
+		predictedValues = append(predictedValues, predicted)
+
+		mse += math.Pow(student.PerformanceIndex-predicted, 2)
+
+		ssResidual += math.Pow(student.PerformanceIndex-predicted, 2)
+
+		ssTotal += math.Pow(student.PerformanceIndex-meanActual, 2)
+	}
+
+	mse /= float64(len(testData))
+
+	rSquared := 1 - (ssResidual / ssTotal)
+
+	return r, mse, rSquared
+}
+
+func getPerformanceIndexes(data []StudentData) []float64 {
+	var performanceIndexes []float64
+	for _, student := range data {
+		performanceIndexes = append(performanceIndexes, student.PerformanceIndex)
+	}
+	return performanceIndexes
 }
 
 func main() {
@@ -175,33 +263,35 @@ func main() {
 	previousScores = minMaxNormalize(previousScores)
 	sleepHours = minMaxNormalize(sleepHours)
 	samplePapers = minMaxNormalize(samplePapers)
-	performanceIndex = minMaxNormalize(performanceIndex)
 
-	displayStatistics("Hours Studied", hoursStudied)
-	displayStatistics("Previous Scores", previousScores)
-	displayStatistics("Sleep Hours", sleepHours)
-	displayStatistics("Sample Question Papers Practiced", samplePapers)
-	displayStatistics("Performance Index", performanceIndex)
+	model1Features := []int{0, 1, 2}
+	model2Features := []int{1, 2, 4}
+	model3Features := []int{0, 1, 2, 3, 4}
 
+	fmt.Println("Model 1: Features {hoursStudied, previousScores, extracurricularActivities}")
+	_, mse1, rSquared1 := trainModel(trainData, testData, model1Features)
+	fmt.Printf("MSE: %0.2f, R^2: %0.6f\n", mse1, rSquared1)
+
+	fmt.Println("Model 2: Features {previousScores, extracurricularActivities, sampleQuestionPapersPracticed, performance}")
+	_, mse2, rSquared2 := trainModel(trainData, testData, model2Features)
+	fmt.Printf("MSE: %0.2f, R^2: %0.6f\n", mse2, rSquared2)
+
+	fmt.Println("Model 3: Features {hoursStudied, previousScores, extracurricularActivities, sleepHours, sampleQuestionPapersPracticed}")
+	_, mse3, rSquared3 := trainModel(trainData, testData, model3Features)
+	fmt.Printf("MSE: %0.2f, R^2: %0.6f\n", mse3, rSquared3)
 }
 
-func displayStatistics(name string, data []float64) {
-	count := len(data)
+func displayStatistics(featureName string, data []float64) {
 	mean := calculateMean(data)
 	stdDev := calculateStdDev(data, mean)
 	min, max := calculateMinMax(data)
-	q25 := calculateQuantile(data, 0.25)
-	q50 := calculateQuantile(data, 0.50)
-	q75 := calculateQuantile(data, 0.75)
+	quantile25 := calculateQuantile(data, 0.25)
+	quantile50 := calculateQuantile(data, 0.5)
+	quantile75 := calculateQuantile(data, 0.75)
 
-	fmt.Printf("%s:\n", name)
-	fmt.Printf("  Count: %d\n", count)
-	fmt.Printf("  Mean: %.2f\n", mean)
-	fmt.Printf("  Std Dev: %.2f\n", stdDev)
-	fmt.Printf("  Min: %.2f\n", min)
-	fmt.Printf("  Max: %.2f\n", max)
-	fmt.Printf("  25th Percentile: %.2f\n", q25)
-	fmt.Printf("  50th Percentile (Median): %.2f\n", q50)
-	fmt.Printf("  75th Percentile: %.2f\n\n", q75)
-
+	fmt.Printf("%s Statistics:\n", featureName)
+	fmt.Printf("Mean: %.2f\n", mean)
+	fmt.Printf("Standard Deviation: %.2f\n", stdDev)
+	fmt.Printf("Min: %.2f, Max: %.2f\n", min, max)
+	fmt.Printf("25th Percentile: %.2f, Median: %.2f, 75th Percentile: %.2f\n\n", quantile25, quantile50, quantile75)
 }
