@@ -38,23 +38,33 @@ func readCSV(filePath string) ([]StudentData, error) {
 			continue
 		}
 
-		hoursStudied, _ := strconv.ParseFloat(record[0], 64)
-		previousScores, _ := strconv.ParseFloat(record[1], 64)
-		extracurricularActivities := record[2] == "Yes"
-		sleepHours, _ := strconv.ParseFloat(record[3], 64)
-		sampleQuestionPapersPracticed, _ := strconv.ParseFloat(record[4], 64)
-		performanceIndex, _ := strconv.ParseFloat(record[5], 64)
+		hoursStudied, _ := parseFloat(record[0])
+		previousScores, _ := parseFloat(record[1])
+		extracurricularActivities := 0
+		if record[2] == "Yes" {
+			extracurricularActivities = 1
+		}
+		sleepHours, _ := parseFloat(record[3])
+		sampleQuestionPapersPracticed, _ := parseFloat(record[4])
+		performanceIndex, _ := parseFloat(record[5])
 
 		data = append(data, StudentData{
 			HoursStudied:                  hoursStudied,
 			PreviousScores:                previousScores,
-			ExtracurricularActivities:     extracurricularActivities,
+			ExtracurricularActivities:     extracurricularActivities == 1,
 			SleepHours:                    sleepHours,
 			SampleQuestionPapersPracticed: sampleQuestionPapersPracticed,
 			PerformanceIndex:              performanceIndex,
 		})
 	}
 	return data, nil
+}
+
+func parseFloat(s string) (float64, error) {
+	if s == "" {
+		return math.NaN(), nil
+	}
+	return strconv.ParseFloat(s, 64)
 }
 
 func calculateMean(data []float64) float64 {
@@ -85,6 +95,15 @@ func calculateMinMax(data []float64) (float64, float64) {
 	}
 	return min, max
 }
+func minMaxNormalize(data []float64) []float64 {
+	min, max := calculateMinMax(data)
+
+	normalizedData := make([]float64, len(data))
+	for i, value := range data {
+		normalizedData[i] = (value - min) / (max - min)
+	}
+	return normalizedData
+}
 
 func calculateQuantile(data []float64, quantile float64) float64 {
 	sort.Float64s(data)
@@ -110,12 +129,14 @@ func main() {
 	}
 
 	var hoursStudied, previousScores, sleepHours, samplePapers, performanceIndex []float64
+	var extracurricularData []bool
 	for _, student := range data {
 		hoursStudied = append(hoursStudied, student.HoursStudied)
 		previousScores = append(previousScores, student.PreviousScores)
 		sleepHours = append(sleepHours, student.SleepHours)
 		samplePapers = append(samplePapers, student.SampleQuestionPapersPracticed)
 		performanceIndex = append(performanceIndex, student.PerformanceIndex)
+		extracurricularData = append(extracurricularData, student.ExtracurricularActivities)
 	}
 
 	displayStatistics("Hours Studied", hoursStudied)
@@ -123,6 +144,20 @@ func main() {
 	displayStatistics("Sleep Hours", sleepHours)
 	displayStatistics("Sample Question Papers Practiced", samplePapers)
 	displayStatistics("Performance Index", performanceIndex)
+
+	// Применяем Min-Max нормализацию
+	hoursStudied = minMaxNormalize(hoursStudied)
+	previousScores = minMaxNormalize(previousScores)
+	sleepHours = minMaxNormalize(sleepHours)
+	samplePapers = minMaxNormalize(samplePapers)
+	performanceIndex = minMaxNormalize(performanceIndex)
+
+	displayStatistics("Hours Studied", hoursStudied)
+	displayStatistics("Previous Scores", previousScores)
+	displayStatistics("Sleep Hours", sleepHours)
+	displayStatistics("Sample Question Papers Practiced", samplePapers)
+	displayStatistics("Performance Index", performanceIndex)
+
 }
 
 func displayStatistics(name string, data []float64) {
@@ -143,4 +178,5 @@ func displayStatistics(name string, data []float64) {
 	fmt.Printf("  25th Percentile: %.2f\n", q25)
 	fmt.Printf("  50th Percentile (Median): %.2f\n", q50)
 	fmt.Printf("  75th Percentile: %.2f\n\n", q75)
+
 }

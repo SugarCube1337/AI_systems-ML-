@@ -4,14 +4,8 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b4851684-76a4-4ab1-ad08-2aee9208743d" name="Changes" comment="csv fix">
-      <change afterPath="$PROJECT_DIR$/linearRegression/histograms.go" afterDir="false" />
+    <list default="true" id="b4851684-76a4-4ab1-ad08-2aee9208743d" name="Changes" comment="histograms">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/linearRegression/graphs/HoursStudied_hist.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/linearRegression/graphs/PerformanceIndex_hist.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/linearRegression/graphs/PreviousScores_hist.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/linearRegression/graphs/SampleQuestionPapersPracticed_hist.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/linearRegression/graphs/SleepHours_hist.png" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/linearRegression/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/linearRegression/main.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -90,7 +84,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="csv fix" />
-    <option name="LAST_COMMIT_MESSAGE" value="csv fix" />
+    <MESSAGE value="histograms" />
+    <option name="LAST_COMMIT_MESSAGE" value="histograms" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
