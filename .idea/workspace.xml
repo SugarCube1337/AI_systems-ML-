@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b4851684-76a4-4ab1-ad08-2aee9208743d" name="Changes" comment="histograms">
+    <list default="true" id="b4851684-76a4-4ab1-ad08-2aee9208743d" name="Changes" comment="min\max normalization">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/linearRegression/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/linearRegression/main.go" afterDir="false" />
     </list>
@@ -85,7 +85,8 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="csv fix" />
     <MESSAGE value="histograms" />
-    <option name="LAST_COMMIT_MESSAGE" value="histograms" />
+    <MESSAGE value="min\max normalization" />
+    <option name="LAST_COMMIT_MESSAGE" value="min\max normalization" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

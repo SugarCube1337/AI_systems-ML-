@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"math/rand"
 	"os"
 	"sort"
 	"strconv"
+	"time"
 )
 
 type StudentData struct {
@@ -116,6 +118,21 @@ func calculateQuantile(data []float64, quantile float64) float64 {
 	return data[low] + (data[high]-data[low])*(index-float64(low))
 }
 
+func shuffleData(data []StudentData) []StudentData {
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(data), func(i, j int) {
+		data[i], data[j] = data[j], data[i]
+	})
+	return data
+}
+
+func splitData(data []StudentData, trainSize float64) ([]StudentData, []StudentData) {
+	trainCount := int(math.Round(trainSize * float64(len(data))))
+	trainData := data[:trainCount]
+	testData := data[trainCount:]
+	return trainData, testData
+}
+
 func main() {
 	filePath := "./dataset/Student_Performance.csv"
 	data, err := readCSV(filePath)
@@ -128,9 +145,17 @@ func main() {
 		log.Fatal(err)
 	}
 
+	data = shuffleData(data)
+
+	// Разделяем на обучающий (80%) и тестовый (20%) наборы
+	trainData, testData := splitData(data, 0.8)
+
+	fmt.Printf("Train Data Size: %d\n", len(trainData))
+	fmt.Printf("Test Data Size: %d\n", len(testData))
+
 	var hoursStudied, previousScores, sleepHours, samplePapers, performanceIndex []float64
 	var extracurricularData []bool
-	for _, student := range data {
+	for _, student := range trainData {
 		hoursStudied = append(hoursStudied, student.HoursStudied)
 		previousScores = append(previousScores, student.PreviousScores)
 		sleepHours = append(sleepHours, student.SleepHours)
