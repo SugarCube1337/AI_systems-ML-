@@ -4,11 +4,8 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b4851684-76a4-4ab1-ad08-2aee9208743d" name="Changes" comment="test\train shuffle">
+    <list default="true" id="b4851684-76a4-4ab1-ad08-2aee9208743d" name="Changes" comment="linear regression 3 diff models (with lib)">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/linearRegression/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/linearRegression/go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/linearRegression/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/linearRegression/go.sum" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/linearRegression/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/linearRegression/main.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,6 +51,11 @@
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;
   }
 }</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\danil\GolandProjects\AI_systems (ML)\kNN" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="go build linearRegression" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="AI_systems (ML)" />
@@ -90,7 +92,8 @@
     <MESSAGE value="histograms" />
     <MESSAGE value="min\max normalization" />
     <MESSAGE value="test\train shuffle" />
-    <option name="LAST_COMMIT_MESSAGE" value="test\train shuffle" />
+    <MESSAGE value="linear regression 3 diff models (with lib)" />
+    <option name="LAST_COMMIT_MESSAGE" value="linear regression 3 diff models (with lib)" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
